@@ -10,6 +10,8 @@ from django.db import connections, router, transaction, models, DEFAULT_DB_ALIAS
 from django.utils.datastructures import SortedDict
 from django.utils.importlib import import_module
 
+### Modification by auto123.com to support schema in postgresql.
+
 
 class Command(NoArgsCommand):
     option_list = NoArgsCommand.option_list + (
