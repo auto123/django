@@ -180,7 +180,22 @@ class BaseDatabaseCreation(object):
         output = []
         for f in model._meta.local_fields:
             output.extend(self.sql_indexes_for_field(model, f, style))
+
+        output = self._sql_indexes_for_model_with_schema(output)
         return output
+
+    def _sql_indexes_for_model_with_schema(self, index_sql):
+        new_index_sql = []
+        for sql in index_sql:
+            index2 = sql.find('"."')
+            if index2 > -1:
+                index1 = sql[:index2].rfind(" ")
+                # CONCAT 'CREATE INDEX ' + "index_name" ON ..."
+                new_sql = (sql[:index1 + 1] + '"' + sql[index2 + 3:])
+                new_index_sql.append(new_sql)
+            else:
+                new_index_sql.append(sql)
+        return new_index_sql
 
     def sql_indexes_for_field(self, model, f, style):
         """
