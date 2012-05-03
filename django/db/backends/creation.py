@@ -8,6 +8,7 @@ from django.db.utils import load_backend
 # the test database.
 TEST_DATABASE_PREFIX = 'test_'
 
+### AUTO 123 PATCH
 SELECT_SCHEMA = "SELECT nspname FROM pg_namespace where nspname='%s';"
 
 CREATE_SCHEMA = "CREATE SCHEMA %s;"
@@ -33,6 +34,11 @@ class BaseDatabaseCreation(object):
         return '%x' % (abs(hash(args)) % 4294967296L)  # 2**32
 
     def sql_create_schema(self, model, style, known_schemas=set()):
+        """
+        Creates the SQL required to create a schema, as a tuple of
+        (schema_name, select schema sql, create schema sql).
+        """
+        ### AUTO 123 PATCH
         db_table = model._meta.db_table
         index = db_table.find('\".\"')
         sql = None
@@ -181,10 +187,12 @@ class BaseDatabaseCreation(object):
         for f in model._meta.local_fields:
             output.extend(self.sql_indexes_for_field(model, f, style))
 
+        ### AUTO 123 PATCH
         output = self._sql_indexes_for_model_with_schema(output)
         return output
 
     def _sql_indexes_for_model_with_schema(self, index_sql):
+        ### AUTO 123 PATCH
         new_index_sql = []
         for sql in index_sql:
             index2 = sql.find('"."')

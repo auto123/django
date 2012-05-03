@@ -91,7 +91,7 @@ class Command(NoArgsCommand):
         if verbosity >= 1:
             print "Creating tables ..."
         for app_name, model_list in manifest.items():
-
+            ### AUTO 123 PATCH
             self._create_schemas(connection, cursor, model_list, verbosity)
 
             for model in model_list:
@@ -174,6 +174,7 @@ class Command(NoArgsCommand):
             call_command('loaddata', 'initial_data', verbosity=verbosity, database=db)
 
     def _create_schemas(self, connection, cursor, model_list, verbosity):
+        ### AUTO 123 PATCH
         seen_schemas = set()
         for model in model_list:
             sql = connection.creation.sql_create_schema(model, self.style,
