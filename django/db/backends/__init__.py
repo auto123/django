@@ -13,6 +13,8 @@ from django.db.transaction import TransactionManagementError
 from django.utils.importlib import import_module
 from django.utils.timezone import is_aware
 
+# AUTO 123 PATCH
+PUBLIC_PREFIX_LEN = len('public"."')
 
 class BaseDatabaseWrapper(object):
     """
@@ -888,7 +890,11 @@ class BaseDatabaseIntrospection(object):
 
         The default table name converter is for case sensitive comparison.
         """
+        # AUTO 123 PATCH
+        if name.startswith('public"."'):
+            return name[PUBLIC_PREFIX_LEN:]
         return name
+    
 
     def table_names(self):
         "Returns a list of names of all tables that exist in the database."
