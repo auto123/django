@@ -8,6 +8,10 @@ from django.db.utils import load_backend
 # the test database.
 TEST_DATABASE_PREFIX = 'test_'
 
+SELECT_SCHEMA = "SELECT nspname FROM pg_namespace where nspname='%s';"
+
+CREATE_SCHEMA = "CREATE SCHEMA %s;"
+
 
 class BaseDatabaseCreation(object):
     """
@@ -27,6 +31,17 @@ class BaseDatabaseCreation(object):
         shorten identifying names.
         """
         return '%x' % (abs(hash(args)) % 4294967296L)  # 2**32
+
+    def sql_create_schema(self, model, style, known_schemas=set()):
+        db_table = model._meta.db_table
+        index = db_table.find('\".\"')
+        sql = None
+        if index > -1:
+            schema = db_table[:index]
+            if schema not in known_schemas:
+                sql = (schema, SELECT_SCHEMA % (schema,), CREATE_SCHEMA % (schema,))
+                known_schemas.add(schema)
+        return sql
 
     def sql_create_model(self, model, style, known_models=set()):
         """

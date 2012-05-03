@@ -14,6 +14,11 @@ from django.utils.importlib import import_module
 
 
 class Command(NoArgsCommand):
+
+    SELECT_SCHEMA = "SELECT nspname FROM pg_namespace where nspname='%s';"
+
+    CREATE_SCHEMA = "CREATE SCHEMA %s;"
+
     option_list = NoArgsCommand.option_list + (
         make_option('--noinput', action='store_false', dest='interactive', default=True,
             help='Tells Django to NOT prompt the user for input of any kind.'),
@@ -86,6 +91,9 @@ class Command(NoArgsCommand):
         if verbosity >= 1:
             print "Creating tables ..."
         for app_name, model_list in manifest.items():
+
+            self._create_schemas(connection, cursor, model_list, verbosity)
+
             for model in model_list:
                 # Create the model's database table, if it doesn't already exist.
                 if verbosity >= 3:
@@ -164,3 +172,21 @@ class Command(NoArgsCommand):
         if load_initial_data:
             from django.core.management import call_command
             call_command('loaddata', 'initial_data', verbosity=verbosity, database=db)
+
+    def _create_schemas(self, connection, cursor, model_list, verbosity):
+        seen_schemas = set()
+        for model in model_list:
+            sql = connection.creation.sql_create_schema(model, self.style,
+                    seen_schemas)
+            if not sql:
+                continue
+            (schema, sql_select, sql_create) = sql
+            cursor.execute(sql_select)
+            row = cursor.fetchone()
+            if not row:
+                if verbosity >= 1:
+                    print("Creating schema %s" % schema)
+                    cursor.execute(sql_create)
+            else:
+                if verbosity >= 1:
+                    print("Skipped creation of schema %s" % schema)
