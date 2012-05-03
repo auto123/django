@@ -246,11 +246,31 @@ class DjangoTestSuiteRunner(object):
         self.verbosity = verbosity
         self.interactive = interactive
         self.failfast = failfast
+        self.requires_db = False
 
     def setup_test_environment(self, **kwargs):
         setup_test_environment()
         settings.DEBUG = False
         unittest.installHandler()
+
+    def _requires_a_db(self, suite):
+        '''
+        If one test has a "no_db" field that is True,
+        the database is required.
+        '''
+        # AUTO 123 PATCH
+        def has_no_db(testcase):
+            return hasattr(testcase,'no_db') and testcase.no_db
+
+        for test in suite:
+            if isinstance(test, unittest.TestSuite):
+                for testcase in test:
+                    if not has_no_db(testcase):
+                        return True
+            else:
+                if not has_no_db(test):
+                    return True
+        return False
 
     def build_suite(self, test_labels, extra_tests=None, **kwargs):
         suite = unittest.TestSuite()
@@ -270,7 +290,12 @@ class DjangoTestSuiteRunner(object):
             for test in extra_tests:
                 suite.addTest(test)
 
-        return reorder_suite(suite, (TestCase,))
+        suite = reorder_suite(suite, (TestCase,))
+
+        # AUTO 123 PATCH
+        self.requires_db = self._requires_a_db(suite)
+
+        return suite
 
     def setup_databases(self, **kwargs):
         from django.db import connections, DEFAULT_DB_ALIAS
@@ -313,8 +338,15 @@ class DjangoTestSuiteRunner(object):
             # Actually create the database for the first connection
             connection = connections[aliases[0]]
             old_names.append((connection, db_name, True))
-            test_db_name = connection.creation.create_test_db(
-                self.verbosity, autoclobber=not self.interactive)
+            if self.requires_db:
+                test_db_name = connection.creation.create_test_db(
+                    self.verbosity, autoclobber=not self.interactive)
+            else:
+                # AUTO 123 PATCH
+                test_db_name = connection.settings_dict['TEST_NAME']\
+                    if connection.settings_dict['TEST_NAME']\
+                    else 'test_' + connection.settings_dict['NAME']
+
             for alias in aliases[1:]:
                 connection = connections[alias]
                 if db_name:
@@ -326,8 +358,11 @@ class DjangoTestSuiteRunner(object):
                     # uses :memory:. Force create the database instead of
                     # assuming it's a duplicate.
                     old_names.append((connection, db_name, True))
-                    connection.creation.create_test_db(
-                        self.verbosity, autoclobber=not self.interactive)
+
+                    # AUTO 123 PATCH
+                    if self.requires_db:
+                        connection.creation.create_test_db(
+                            self.verbosity, autoclobber=not self.interactive)
 
         for alias, mirror_alias in mirrored_aliases.items():
             mirrors.append((alias, connections[alias].settings_dict['NAME']))
@@ -347,8 +382,12 @@ class DjangoTestSuiteRunner(object):
         """
         old_names, mirrors = old_config
         for connection, old_name, destroy in old_names:
-            if destroy:
-                connection.creation.destroy_test_db(old_name, self.verbosity)
+            if self.requires_db:
+                if destroy:
+                    connection.creation.destroy_test_db(old_name, self.verbosity)
+            else:
+                # AUTO 123 PATCH
+                connection.settings_dict['NAME'] = old_name
 
     def teardown_test_environment(self, **kwargs):
         unittest.removeHandler()
