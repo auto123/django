@@ -59,6 +59,8 @@ class Command(BaseCommand):
 
         # Keep a count of the installed objects and fixtures
         fixture_count = 0
+        # AUTO 123 PATCH
+        fixture_paths = ''
         loaded_object_count = 0
         fixture_object_count = 0
         models = set()
@@ -179,6 +181,7 @@ class Command(BaseCommand):
                                         return
 
                                     fixture_count += 1
+                                    fixture_paths += ' ' + full_path + '\n'
                                     objects_in_fixture = 0
                                     loaded_objects_in_fixture = 0
                                     if verbosity >= 2:
@@ -256,12 +259,15 @@ class Command(BaseCommand):
             transaction.leave_transaction_management(using=using)
 
         if verbosity >= 1:
+            if fixture_paths:
+                fixture_paths = fixture_paths[:-1]
             if fixture_object_count == loaded_object_count:
-                self.stdout.write("Installed %d object(s) from %d fixture(s)\n" % (
-                    loaded_object_count, fixture_count))
+                self.stdout.write("Installed %d object(s) from %d fixture(s)\n%s\n" % (
+                    loaded_object_count, fixture_count, fixture_paths))
             else:
-                self.stdout.write("Installed %d object(s) (of %d) from %d fixture(s)\n" % (
-                    loaded_object_count, fixture_object_count, fixture_count))
+                self.stdout.write("Installed %d object(s) (of %d) from %d fixture(s)\n%s\n" % (
+                    loaded_object_count, fixture_object_count, fixture_count,
+                    fixture_paths))
 
         # Close the DB connection. This is required as a workaround for an
         # edge case in MySQL: if the same connection is used to
