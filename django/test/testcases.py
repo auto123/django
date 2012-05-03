@@ -482,7 +482,12 @@ class TransactionTestCase(SimpleTestCase):
                     # We have to use this slightly awkward syntax due to the fact
                     # that we're using *args and **kwargs together.
                     call_command('loaddata', *self.fixtures,
-                                **{'verbosity': 0, 'database': db})
+                                **{'verbosity': 1, 'database': db})
+
+        # AUTO 123 PATCH
+        self._set_ro_initialized()
+
+    def _set_ro_initialized(self):
         # AUTO 123 PATCH
         if hasattr(self, 'read_only') and self.read_only:
             key = '{0}/{1}'.format(inspect.getfile(self.__class__),
@@ -826,7 +831,11 @@ class TestCase(TransactionTestCase):
     """
 
     def _fixture_setup(self):
-        if not connections_support_transactions():
+        # AUTO 123 PATCH
+        # Unfortunately, the one transaction scheme does not work
+        # with multiple databases (it creates a new connection when switching
+        # databases even if they all point to the same db).
+        if True:#not connections_support_transactions():
             return super(TestCase, self)._fixture_setup()
 
         # If the test case has a multi_db=True flag, setup all databases.
@@ -847,14 +856,19 @@ class TestCase(TransactionTestCase):
         for db in databases:
             if hasattr(self, 'fixtures'):
                 call_command('loaddata', *self.fixtures,
-                             **{
+                            **{
                                 'verbosity': 0,
                                 'commit': False,
                                 'database': db
-                             })
+                            })
+
 
     def _fixture_teardown(self):
-        if not connections_support_transactions():
+        # AUTO 123 PATCH
+        # Unfortunately, the one transaction scheme does not work
+        # with multiple databases (it creates a new connection when switching
+        # databases even if they all point to the same db).
+        if True: #not connections_support_transactions():
             return super(TestCase, self)._fixture_teardown()
 
         # If the test case has a multi_db=True flag, teardown all databases.
