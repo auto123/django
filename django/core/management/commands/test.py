@@ -24,6 +24,10 @@ class Command(BaseCommand):
             help='Overrides the default address where the live server (used '
                  'with LiveServerTestCase) is expected to run from. The '
                  'default value is localhost:8081.'),
+        # AUTO 123 PATCH
+        make_option('--testdb',
+            action='store', dest='testdb', default=None,
+            help='Tells Django what the name of the database should be.')
     )
     help = ('Runs the test suite for the specified applications, or the '
             'entire site if no apps are specified.')
@@ -67,6 +71,19 @@ class Command(BaseCommand):
         if options.get('liveserver') is not None:
             os.environ['DJANGO_LIVE_TEST_SERVER_ADDRESS'] = options['liveserver']
             del options['liveserver']
+
+        ### AUTO 123 PATCH
+        testdb = options.get('testdb', None)
+        if testdb:
+            foundnothing = True
+            for k, v in settings.DATABASES.iteritems():
+                if v['TEST_MIRROR'] != 'default':
+                    v['TEST_NAME'] = testdb
+                    print k + " database TEST_NAME replaced with " + testdb
+                    foundnothing = False
+                    break
+            if foundnothing:
+                print "No DB with TEST_MIRROR=default found."
 
         test_runner = TestRunner(**options)
         failures = test_runner.run_tests(test_labels)
