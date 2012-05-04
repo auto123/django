@@ -187,7 +187,7 @@ class Command(NoArgsCommand):
             if not row:
                 if verbosity >= 1:
                     print("Creating schema %s" % schema)
-                    cursor.execute(sql_create)
+                cursor.execute(sql_create)
             else:
                 if verbosity >= 1:
                     print("Skipped creation of schema %s" % schema)
