@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import with_statement
 
 import difflib
@@ -448,22 +447,6 @@ class SimpleTestCase(ut2.TestCase):
             self.fail(self._formatMessage(msg, standardMsg))
 
 
-CREATE_FUNCTION = r"""
-CREATE OR REPLACE FUNCTION xturlnormalize(text)
-  RETURNS text AS
-$BODY$
-BEGIN
-    RETURN translate(
-    lower($1),    
-    E'\xc3\xa9\xc3\xa8\xc3\xaa\xc3\xab\xc3\xa6\xc3\xa0\xc3\xa4\xc3\xa2@\xc3\xb9\xc3\xbb\xc3\xbc\xc3\xb6\xc3\xb4\xc3\xa7\xc3\xaf\xc3\xae\xc3\xb1 ,.!?¿&/\|''"%%:()[]{{}}^$*~`+=<>',
-    'eeeeaaaaauuuoociin-');    
-END;
-$BODY$
-  LANGUAGE plpgsql IMMUTABLE STRICT
-  COST 100;
-"""
-
-
 class TransactionTestCase(SimpleTestCase):
     # The class we'll use for the test client self.client.
     # Can be overridden in derived classes.
@@ -479,16 +462,9 @@ class TransactionTestCase(SimpleTestCase):
               ROOT_URLCONF with it.
             * Clearing the mail test outbox.
         """
-        self._custom_sql_setup()
         self._fixture_setup()
         self._urlconf_setup()
         mail.outbox = []
-
-    def _custom_sql_setup(self):
-        # AUTO 123 PATCH
-        cursor = connections['default'].cursor()
-        cursor.execute(CREATE_FUNCTION)
-#        transaction.commit_unless_managed()
 
     def _fixture_setup(self):
         # AUTO 123 PATCH
