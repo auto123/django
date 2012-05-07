@@ -4,6 +4,7 @@ import os
 import sys
 from optparse import make_option
 
+from django.core.management import call_command
 from django.core.files.storage import FileSystemStorage
 from django.core.management.base import CommandError, NoArgsCommand
 from django.utils.encoding import smart_str, smart_unicode
@@ -147,6 +148,9 @@ class Command(NoArgsCommand):
         else:
             clear_display = 'This will overwrite existing files!'
 
+        # AUTO123 PATCH
+        call_command('sass', compress=True, force=True)
+
         if self.interactive:
             confirm = raw_input(u"""
 You have requested to collect static files at the destination
@@ -181,6 +185,11 @@ Type 'yes' to continue, or 'no' to cancel: """
                                    % post_processed_count or ''),
             }
             self.stdout.write(smart_str(summary))
+
+        # AUTO123 PATCH
+        interactive = options.get('interactive')
+        call_command('generate_sitemap', interactive=interactive)
+        call_command('generate_robotstxt', interactive=interactive)
 
     def log(self, msg, level=2):
         """
