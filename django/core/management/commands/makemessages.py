@@ -155,7 +155,7 @@ def process_file(file, dirpath, potfile, domain, verbosity,
 
     Uses the xgettext GNU gettext utility.
     """
-
+    print 'process_file', file, 'location', location
     from django.utils.translation import templatize
 
     if verbosity > 1:
@@ -286,6 +286,12 @@ def make_messages(locale=None, domain='django', verbosity=1, all=False,
         ignore_patterns += ['contrib/*']
     elif os.path.isdir('locale'):
         localedir = os.path.abspath('locale')
+    # AUTO 123 PATCH
+    elif os.environ.get('DJANGO_SETTINGS_MODULE'):
+        if len(settings.LOCALE_PATHS) == 1:
+            localedir = settings.LOCALE_PATHS[0]
+        else:
+            raise CommandError("Auto123 patch works only with one LOCALE_PATH")
     else:
         raise CommandError("This script should be run from the Django SVN "
                 "tree or your project or app tree. If you did indeed run it "
