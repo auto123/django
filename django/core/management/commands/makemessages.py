@@ -155,7 +155,6 @@ def process_file(file, dirpath, potfile, domain, verbosity,
 
     Uses the xgettext GNU gettext utility.
     """
-    print 'process_file', file, 'location', location
     from django.utils.translation import templatize
 
     if verbosity > 1:
@@ -341,7 +340,9 @@ def make_messages(locale=None, domain='django', verbosity=1, all=False,
         if os.path.exists(potfile):
             os.unlink(potfile)
 
-        for dirpath, file in find_files(".", ignore_patterns, verbosity,
+        # AUTO 123 PATCH
+        # parses py files from project source root
+        for dirpath, file in find_files(settings.PROJECT_ROOT, ignore_patterns, verbosity,
                 stdout, symlinks=symlinks):
             process_file(file, dirpath, potfile, domain, verbosity, extensions,
                     wrap, location, stdout)
