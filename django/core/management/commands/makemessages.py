@@ -286,11 +286,14 @@ def make_messages(locale=None, domain='django', verbosity=1, all=False,
     elif os.path.isdir('locale'):
         localedir = os.path.abspath('locale')
     # AUTO 123 PATCH
+    # look for the project's locale dir, based on LOCALE_PATH setting
     elif os.environ.get('DJANGO_SETTINGS_MODULE'):
-        if len(settings.LOCALE_PATHS) == 1:
-            localedir = settings.LOCALE_PATHS[0]
+        project_locale_dirs = filter(lambda path: os.path.abspath('.') in path, settings.LOCALE_PATHS)
+        if len(project_locale_dirs) == 1:
+            localedir = project_locale_dirs[0]
         else:
-            raise CommandError("Auto123 patch works only with one LOCALE_PATH")
+            raise CommandError("Auto123 patch works only with one LOCALE_PATH (found %n)" % 
+                               project_locale_dirs)
     else:
         raise CommandError("This script should be run from the Django SVN "
                 "tree or your project or app tree. If you did indeed run it "
