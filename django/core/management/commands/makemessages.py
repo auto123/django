@@ -342,7 +342,8 @@ def make_messages(locale=None, domain='django', verbosity=1, all=False,
 
         # AUTO 123 PATCH
         # parses py files from project source root
-        for dirpath, file in find_files(settings.PROJECT_ROOT, ignore_patterns, verbosity,
+        source_root = getattr(settings, 'PROJECT_ROOT', None) or '.'
+        for dirpath, file in find_files(source_root, ignore_patterns, verbosity,
                 stdout, symlinks=symlinks):
             process_file(file, dirpath, potfile, domain, verbosity, extensions,
                     wrap, location, stdout)
