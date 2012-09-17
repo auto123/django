@@ -14,6 +14,13 @@ from django.utils.jslex import prepare_js_for_gettext
 
 plural_forms_re = re.compile(r'^(?P<value>"Plural-Forms.+?\\n")\s*$', re.MULTILINE | re.DOTALL)
 
+CONTEXT_DECLARATION = re.compile(r'''_c = partial\(pgettext_lazy, (["'])([^"']+)\1\)''')
+
+REPLACE_SEARCH = re.compile(r'''_c\((["'])''')
+
+REPLACE_REPLACE = r'_c("{0}", \1'
+
+
 def handle_extensions(extensions=('html',), ignored=('py',)):
     """
     Organizes multiple extensions that are separated with commas or passed by
@@ -192,6 +199,16 @@ def process_file(file, dirpath, potfile, domain, verbosity,
                 f.write(content)
             finally:
                 f.close()
+        else:
+            if orig_file == "./newcars/constants.py":
+                src_lines = open(orig_file, "rU").readlines()
+                (content, context) = create_context(src_lines)
+                print(content)
+            #f = open(os.path.join(dirpath, orig_file), "w")
+            #try:
+                #f.write(content)
+            #finally:
+                #f.close()
         work_file = os.path.join(dirpath, thefile)
         cmd = (
             'xgettext -d %s -L Python %s %s --keyword=gettext_noop '
@@ -217,6 +234,25 @@ def process_file(file, dirpath, potfile, domain, verbosity,
         write_pot_file(potfile, msgs, orig_file, work_file, is_templatized)
     if is_templatized:
         os.unlink(work_file)
+
+
+def create_context(lines):
+    content = ""
+    found = False
+    context = ""
+    for line in lines:
+        if not found:
+            match = CONTEXT_DECLARATION.match(line)
+            if match:
+                found = True
+                context = match.group(2)
+                to_replace = REPLACE_REPLACE.format(context)
+        else:
+            line = REPLACE_SEARCH.sub(to_replace, line)
+
+        content += line
+    return (content, context)
+
 
 def write_po_file(pofile, potfile, domain, locale, verbosity, stdout,
                   copy_pforms, wrap, location, no_obsolete):
