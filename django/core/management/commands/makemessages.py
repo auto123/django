@@ -15,6 +15,7 @@ from django.utils.jslex import prepare_js_for_gettext
 
 plural_forms_re = re.compile(r'^(?P<value>"Plural-Forms.+?\\n")\s*$', re.MULTILINE | re.DOTALL)
 
+# AUTO 123 PATCH
 CONTEXT_DECLARATION = re.compile(r'''_c = partial\(pgettext_lazy, (["'])([^"']+)\1\)''')
 
 REPLACE_SEARCH = re.compile(r'''_c\((["'])''')
@@ -202,6 +203,7 @@ def process_file(file, dirpath, potfile, domain, verbosity,
             finally:
                 f.close()
         else:
+            # AUTO 123 PATCH
             src_lines = open(orig_file, "rU").readlines()
             (content, context) = create_context(src_lines)
             if context:
@@ -221,7 +223,7 @@ def process_file(file, dirpath, potfile, domain, verbosity,
             'xgettext -d %s -L Python %s %s --keyword=gettext_noop '
             '--keyword=gettext_lazy --keyword=ngettext_lazy:1,2 '
             '--keyword=ugettext_noop --keyword=ugettext_lazy '
-            '--keyword=_c:1c,2 '
+            '--keyword=_c:1c,2 ' # AUTO 123 PATCH
             '--keyword=ungettext_lazy:1,2 --keyword=pgettext:1c,2 '
             '--keyword=npgettext:1c,2,3 --keyword=pgettext_lazy:1c,2 '
             '--keyword=npgettext_lazy:1c,2,3 --from-code UTF-8 '
@@ -250,6 +252,10 @@ def process_file(file, dirpath, potfile, domain, verbosity,
 
 
 def create_context(lines):
+    """
+    Replace usage of _("") by _c("")
+    """
+    # AUTO 123 PATCH
     content = ""
     found = False
     context = ""
