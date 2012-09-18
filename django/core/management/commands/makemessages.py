@@ -3,6 +3,7 @@ import glob
 import os
 import re
 import sys
+import shutil
 from itertools import dropwhile
 from optparse import make_option
 from subprocess import PIPE, Popen
@@ -164,6 +165,8 @@ def process_file(file, dirpath, potfile, domain, verbosity,
     """
     from django.utils.translation import templatize
 
+    is_context_generated = False
+
     if verbosity > 1:
         stdout.write('processing file %s in %s\n' % (file, dirpath))
     _, file_ext = os.path.splitext(file)
@@ -199,20 +202,26 @@ def process_file(file, dirpath, potfile, domain, verbosity,
             finally:
                 f.close()
         else:
-            if orig_file == "./newcars/constants.py":
-                src_lines = open(orig_file, "rU").readlines()
-                (content, context) = create_context(src_lines)
-                print(content)
-            #f = open(os.path.join(dirpath, orig_file), "w")
-            #try:
-                #f.write(content)
-            #finally:
-                #f.close()
+            src_lines = open(orig_file, "rU").readlines()
+            (content, context) = create_context(src_lines)
+            if context:
+                is_context_generated = True
+                src_file = orig_file
+                dest_file = src_file + '.msgbak'
+                shutil.copy(src_file, dest_file)
+                f = open(src_file, "w")
+                try:
+                    f.write(content)
+                finally:
+                    f.close()
+                print('Detected context in: {0}'.format(src_file))
+
         work_file = os.path.join(dirpath, thefile)
         cmd = (
             'xgettext -d %s -L Python %s %s --keyword=gettext_noop '
             '--keyword=gettext_lazy --keyword=ngettext_lazy:1,2 '
             '--keyword=ugettext_noop --keyword=ugettext_lazy '
+            '--keyword=_c:1c,2 '
             '--keyword=ungettext_lazy:1,2 --keyword=pgettext:1c,2 '
             '--keyword=npgettext:1c,2,3 --keyword=pgettext_lazy:1c,2 '
             '--keyword=npgettext_lazy:1c,2,3 --from-code UTF-8 '
@@ -221,6 +230,11 @@ def process_file(file, dirpath, potfile, domain, verbosity,
     else:
         return
     msgs, errors = _popen(cmd)
+
+    if is_context_generated:
+        shutil.move(dest_file, src_file)
+
+
     if errors:
         if is_templatized:
             os.unlink(work_file)
