@@ -81,10 +81,24 @@ class TranslateNode(Node):
                                                   self.filter_expression.var)
 
     def render(self, context):
+        # AUTO 123 PATCH
+        msg_context_is_string = False
+        from django.utils.translation.trans_real import MESSAGE_CONTEXT_KEY
+        if MESSAGE_CONTEXT_KEY in context and not self.message_context:
+            self.message_context = context[MESSAGE_CONTEXT_KEY]
+            msg_context_is_string = True
+
+
+        # AUTO 123 PATCH
         self.filter_expression.var.translate = not self.noop
+        if self.message_context and not msg_context_is_string:
+            self.message_context = self.message_context.resolve(context)
+
+        # AUTO 123 PATCH
         if self.message_context:
             self.filter_expression.var.message_context = (
-                self.message_context.resolve(context))
+                self.message_context)
+
         output = self.filter_expression.resolve(context)
         value = _render_value_in_context(output, context)
         if self.asvar:
@@ -116,10 +130,19 @@ class BlockTranslateNode(Node):
         return ''.join(result), vars
 
     def render(self, context):
-        if self.message_context:
+        # AUTO 123 PATCH
+        msg_context_is_string = False
+        from django.utils.translation.trans_real import MESSAGE_CONTEXT_KEY
+        if MESSAGE_CONTEXT_KEY in context and not self.message_context:
+            self.message_context = context[MESSAGE_CONTEXT_KEY]
+            msg_context_is_string = True
+
+        # AUTO 123 PATCH
+        if self.message_context and not msg_context_is_string:
             message_context = self.message_context.resolve(context)
         else:
             message_context = None
+
         tmp_context = {}
         for var, val in self.extra_context.items():
             tmp_context[var] = val.resolve(context)
