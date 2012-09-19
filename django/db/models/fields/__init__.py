@@ -954,6 +954,9 @@ class FloatField(Field):
         return super(FloatField, self).formfield(**defaults)
 
 class IntegerField(Field):
+    # AUTO 123 PATCH
+    MIN_INT = -2147483648
+    MAX_INT = 2147483647
     empty_strings_allowed = False
     default_error_messages = {
         'invalid': _("'%s' value must be an integer."),
@@ -984,7 +987,10 @@ class IntegerField(Field):
             raise exceptions.ValidationError(msg)
 
     def formfield(self, **kwargs):
-        defaults = {'form_class': forms.IntegerField}
+        defaults = {'form_class': forms.IntegerField,
+                    # AUTO 123 PATCH
+                    'min_value': IntegerField.MIN_INT,
+                    'max_value': IntegerField.MAX_INT}
         defaults.update(kwargs)
         return super(IntegerField, self).formfield(**defaults)
 
