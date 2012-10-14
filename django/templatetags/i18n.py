@@ -87,6 +87,9 @@ class TranslateNode(Node):
         if MESSAGE_CONTEXT_KEY in context and not self.message_context:
             self.message_context = context[MESSAGE_CONTEXT_KEY]
             msg_context_is_string = True
+        elif self.message_context and isinstance(self.message_context,
+                basestring):
+            msg_context_is_string = True
 
 
         # AUTO 123 PATCH
@@ -135,6 +138,9 @@ class BlockTranslateNode(Node):
         from django.utils.translation.trans_real import MESSAGE_CONTEXT_KEY
         if MESSAGE_CONTEXT_KEY in context and not self.message_context:
             self.message_context = context[MESSAGE_CONTEXT_KEY]
+            msg_context_is_string = True
+        elif self.message_context and isinstance(self.message_context,
+                basestring):
             msg_context_is_string = True
 
         # AUTO 123 PATCH
