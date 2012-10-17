@@ -134,6 +134,7 @@ class BlockTranslateNode(Node):
 
     def render(self, context):
         # AUTO 123 PATCH
+        message_context = None
         msg_context_is_string = False
         from django.utils.translation.trans_real import MESSAGE_CONTEXT_KEY
         if MESSAGE_CONTEXT_KEY in context and not self.message_context:
@@ -146,8 +147,8 @@ class BlockTranslateNode(Node):
         # AUTO 123 PATCH
         if self.message_context and not msg_context_is_string:
             message_context = self.message_context.resolve(context)
-        else:
-            message_context = None
+        elif self.message_context:
+            message_context = self.message_context
 
         tmp_context = {}
         for var, val in self.extra_context.items():
