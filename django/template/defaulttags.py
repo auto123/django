@@ -35,14 +35,20 @@ class AutoEscapeControlNode(Node):
             return output
 
 class CommentNode(Node):
-    def __init__(self, message_context=None):
+    def __init__(self, message_context=None, context_all=False):
         self.message_context = message_context
+        self.context_all = context_all
 
     def render(self, context):
         # AUTO 123 PATCH
         if self.message_context:
             from django.utils.translation.trans_real import MESSAGE_CONTEXT_KEY
-            context[MESSAGE_CONTEXT_KEY] = self.message_context
+            from django.template.context import BaseContext
+
+            if not self.context_all or not isinstance(context, BaseContext):
+                context[MESSAGE_CONTEXT_KEY] = self.message_context
+            else:
+                context.dicts[0][MESSAGE_CONTEXT_KEY] = self.message_context
 
         return ''
 
@@ -522,6 +528,7 @@ def comment(parser, token):
         return comment_content
 
     context = ""
+    context_all = False
     content = skip_past(parser, 'endcomment')
 
     if content:
@@ -529,8 +536,11 @@ def comment(parser, token):
         match = CONTEXT_DECLARATION.match(content.strip())
         if match:
             context = match.group(2)
+            matched_text = match.group(0)
+            context_all = matched_text.startswith('context_all') or\
+                    matched_text.startswith('@context_all')
 
-    return CommentNode(context)
+    return CommentNode(context, context_all)
 
 @register.tag
 def cycle(parser, token):

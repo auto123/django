@@ -41,7 +41,7 @@ accept_language_re = re.compile(r'''
 language_code_prefix_re = re.compile(r'^/([\w-]+)(/|$)')
 
 # AUTO 123 PATCH
-CONTEXT_DECLARATION = re.compile(r'''context: (["'])([^"']+)\1''')
+CONTEXT_DECLARATION = re.compile(r'''[@]?context(?:_all)?: (["'])([^"']+)\1''')
 
 MESSAGE_CONTEXT_KEY = "TEMPLATE_MESSAGE_CONTEXT"
 
