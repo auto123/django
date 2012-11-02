@@ -6,3 +6,5 @@ docs/_build/
 tags
 .*project
 .settings
+tests/coverage_html/
+tests/.coverage
