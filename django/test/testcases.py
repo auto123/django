@@ -1,7 +1,6 @@
 from __future__ import with_statement
 
 import difflib
-import inspect
 import os
 import re
 import sys
@@ -48,9 +47,6 @@ normalize_long_ints = lambda s: re.sub(r'(?<![\w])(\d+)L(?![\w])', '\\1', s)
 normalize_decimals = lambda s: re.sub(r"Decimal\('(\d+(\.\d*)?)'\)",
                                 lambda m: "Decimal(\"%s\")" % m.groups()[0], s)
 
-# AUTO 123 PATCH
-# Only initialized read only test case once.
-ro_initialized = set()
 
 def to_list(value):
     """
@@ -467,43 +463,19 @@ class TransactionTestCase(SimpleTestCase):
         mail.outbox = []
 
     def _fixture_setup(self):
-        # AUTO 123 PATCH
-        if self._should_setup_fixture():
-            # If the test case has a multi_db=True flag, flush all databases.
-            # Otherwise, just flush default.
-            if getattr(self, 'multi_db', False):
-                databases = connections
-            else:
-                databases = [DEFAULT_DB_ALIAS]
-            for db in databases:
-                call_command('flush', verbosity=0, interactive=False, database=db)
-
-                if hasattr(self, 'fixtures'):
-                    # We have to use this slightly awkward syntax due to the fact
-                    # that we're using *args and **kwargs together.
-                    call_command('loaddata', *self.fixtures,
-                                **{'verbosity': 1, 'database': db})
-
-        # AUTO 123 PATCH
-        self._set_ro_initialized()
-
-    def _set_ro_initialized(self):
-        # AUTO 123 PATCH
-        if hasattr(self, 'read_only') and self.read_only:
-            key = '{0}/{1}'.format(inspect.getfile(self.__class__),
-                    self.__class__.__name__)
-            ro_initialized.add(key)
-        
-
-    def _should_setup_fixture(self):
-        """
-        Makes sure that no_db and read_only dbs are not initialized.
-        """
-        # AUTO 123 PATCH
-        key = '{0}/{1}'.format(inspect.getfile(self.__class__),
-                self.__class__.__name__)
-        return (not hasattr(self, 'no_db') or not self.no_db) and\
-            (not key in ro_initialized)
+        # If the test case has a multi_db=True flag, flush all databases.
+        # Otherwise, just flush default.
+        if getattr(self, 'multi_db', False):
+            databases = connections
+        else:
+            databases = [DEFAULT_DB_ALIAS]
+        for db in databases:
+            call_command('flush', verbosity=0, interactive=False, database=db)
+            if hasattr(self, 'fixtures'):
+                # We have to use this slightly awkward syntax due to the fact
+                # that we're using *args and **kwargs together.
+                call_command('loaddata', *self.fixtures,
+                    **{'verbosity': 0, 'database': db})
 
     def _urlconf_setup(self):
         if hasattr(self, 'urls'):
