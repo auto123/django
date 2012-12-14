@@ -47,7 +47,6 @@ normalize_long_ints = lambda s: re.sub(r'(?<![\w])(\d+)L(?![\w])', '\\1', s)
 normalize_decimals = lambda s: re.sub(r"Decimal\('(\d+(\.\d*)?)'\)",
                                 lambda m: "Decimal(\"%s\")" % m.groups()[0], s)
 
-
 def to_list(value):
     """
     Puts value into a list if it's not already one.
@@ -471,6 +470,7 @@ class TransactionTestCase(SimpleTestCase):
             databases = [DEFAULT_DB_ALIAS]
         for db in databases:
             call_command('flush', verbosity=0, interactive=False, database=db)
+
             if hasattr(self, 'fixtures'):
                 # We have to use this slightly awkward syntax due to the fact
                 # that we're using *args and **kwargs together.
@@ -829,7 +829,6 @@ class TestCase(TransactionTestCase):
                                 'commit': False,
                                 'database': db
                              })
-
 
     def _fixture_teardown(self):
         if not connections_support_transactions():
