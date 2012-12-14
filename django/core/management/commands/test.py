@@ -84,6 +84,7 @@ class Command(BaseCommand):
                     break
             if foundnothing:
                 print "No DB with TEST_MIRROR=default found."
+            del options['testdb']
 
         test_runner = TestRunner(**options)
         failures = test_runner.run_tests(test_labels)
