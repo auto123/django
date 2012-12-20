@@ -5,6 +5,7 @@ docs/_build/
 *.swp
 tags
 .*project
+.idea
 .settings
 tests/coverage_html/
 tests/.coverage
