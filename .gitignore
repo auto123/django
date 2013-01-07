@@ -9,3 +9,5 @@ tags
 .settings
 tests/coverage_html/
 tests/.coverage
+.idea
+
