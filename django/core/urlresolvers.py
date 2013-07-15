@@ -209,6 +209,13 @@ class RegexURLPattern(LocaleRegexProvider):
             return ResolverMatch(self.callback, args, kwargs, self.name)
 
     @property
+    def meta_callback(self):
+        def internal_callback(*args, **kwargs):
+            callback = self.callback
+            return callback(*args, **kwargs)
+        return internal_callback
+
+    @property
     def callback(self):
         if self._callback is not None:
             return self._callback
@@ -262,7 +269,7 @@ class RegexURLResolver(LocaleRegexProvider):
                         apps.setdefault(app_name, []).extend(namespace_list)
             else:
                 bits = normalize(p_pattern)
-                lookups.appendlist(pattern.callback, (bits, p_pattern, pattern.default_args))
+                lookups.appendlist(pattern.meta_callback, (bits, p_pattern, pattern.default_args))
                 if pattern.name is not None:
                     lookups.appendlist(pattern.name, (bits, p_pattern, pattern.default_args))
         self._reverse_dict[language_code] = lookups
