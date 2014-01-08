@@ -30,14 +30,23 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     def get_table_list(self, cursor):
         "Returns a list of table names in the current database."
+        # AUTO 123 PATCH
         cursor.execute("""
-            SELECT c.relname
+            SELECT c.relname, n.nspname
             FROM pg_catalog.pg_class c
             LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind IN ('r', 'v', '')
-                AND n.nspname NOT IN ('pg_catalog', 'pg_toast')
-                AND pg_catalog.pg_table_is_visible(c.oid)""")
-        return [row[0] for row in cursor.fetchall() if row[0] not in self.ignored_tables]
+                AND n.nspname NOT IN ('pg_catalog', 'pg_toast')""")
+        table_list = []
+        for row in cursor.fetchall():
+            if row[1] == 'public':
+                table_name = row[0]
+            else:
+                table_name = row[1] + '"."' + row[0]
+            if table_name not in self.ignored_tables:
+                table_list.append(table_name)
+
+        return table_list
 
     def get_table_description(self, cursor, table_name):
         "Returns a description of the table, with the DB-API cursor.description interface."

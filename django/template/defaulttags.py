@@ -41,7 +41,21 @@ class AutoEscapeControlNode(Node):
             return output
 
 class CommentNode(Node):
+    def __init__(self, message_context=None, context_all=False):
+        self.message_context = message_context
+        self.context_all = context_all
+
     def render(self, context):
+        # AUTO 123 PATCH
+        if self.message_context:
+            from django.utils.translation.trans_real import MESSAGE_CONTEXT_KEY
+            from django.template.context import BaseContext
+
+            if not self.context_all or not isinstance(context, BaseContext):
+                context[MESSAGE_CONTEXT_KEY] = self.message_context
+            else:
+                context.dicts[0][MESSAGE_CONTEXT_KEY] = self.message_context
+
         return ''
 
 class CsrfTokenNode(Node):
@@ -528,8 +542,37 @@ def comment(parser, token):
     """
     Ignores everything between ``{% comment %}`` and ``{% endcomment %}``.
     """
-    parser.skip_past('endcomment')
-    return CommentNode()
+    # AUTO 123 PATCH
+    def skip_past(parser, endtag):
+        from django.template.base import TOKEN_BLOCK
+        comment_content = None
+
+        while parser.tokens:
+            token = parser.next_token()
+            if token.token_type == TOKEN_BLOCK and token.contents == endtag:
+                return comment_content
+            else:
+                if not comment_content:
+                    comment_content = token.contents
+        parser.unclosed_block_tag([endtag])
+
+        return comment_content
+
+    context = ""
+    context_all = False
+    content = skip_past(parser, 'endcomment')
+
+    if content:
+        from django.utils.translation.trans_real import CONTEXT_DECLARATION
+        match = CONTEXT_DECLARATION.match(content.strip())
+        if match:
+            context = match.group(2)
+            matched_text = match.group(0)
+            context_all = matched_text.startswith('context_all') or\
+                    matched_text.startswith('@context_all')
+
+    return CommentNode(context, context_all)
+
 
 @register.tag
 def cycle(parser, token, escape=False):

@@ -22,6 +22,10 @@ from django.utils import six
 from django.utils import timezone
 
 
+# AUTO 123 PATCH
+PUBLIC_PREFIX_LEN = len('public"."')
+
+
 class BaseDatabaseWrapper(object):
     """
     Represents a database connection.
@@ -1197,6 +1201,9 @@ class BaseDatabaseIntrospection(object):
 
         The default table name converter is for case sensitive comparison.
         """
+        # AUTO 123 PATCH
+        if name.startswith('public"."'):
+            return name[PUBLIC_PREFIX_LEN:]
         return name
 
     def table_names(self, cursor=None):

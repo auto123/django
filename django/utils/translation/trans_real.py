@@ -46,6 +46,11 @@ accept_language_re = re.compile(r'''
 
 language_code_prefix_re = re.compile(r'^/([\w-]+)(/|$)')
 
+# AUTO 123 PATCH
+CONTEXT_DECLARATION = re.compile(r'''[@]?context(?:_all)?: (["'])([^"']+)\1''')
+
+MESSAGE_CONTEXT_KEY = "TEMPLATE_MESSAGE_CONTEXT"
+
 
 def to_locale(language, to_lower=False):
     """
@@ -503,6 +508,8 @@ def templatize(src, origin=None):
     plural = []
     incomment = False
     comment = []
+    # AUTO 123 PATCH
+    context = ""
     lineno_comment_map = {}
     comment_lineno_cache = None
 
@@ -510,6 +517,12 @@ def templatize(src, origin=None):
         if incomment:
             if t.token_type == TOKEN_BLOCK and t.contents == 'endcomment':
                 content = ''.join(comment)
+
+                # AUTO 123 PATCH
+                match = CONTEXT_DECLARATION.match(content)
+                if match:
+                    context = match.group(2)
+
                 translators_comment_start = None
                 for lineno, line in enumerate(content.splitlines(True)):
                     if line.lstrip().startswith(TRANSLATOR_COMMENT_MARK):
@@ -532,7 +545,11 @@ def templatize(src, origin=None):
                         if message_context:
                             out.write(' npgettext(%r, %r, %r,count) ' % (message_context, ''.join(singular), ''.join(plural)))
                         else:
-                            out.write(' ngettext(%r, %r, count) ' % (''.join(singular), ''.join(plural)))
+                            # AUTO 123 PATCH
+                            if context:
+                                out.write(' npgettext(%r, %r, %r,count) ' % (context, ''.join(singular), ''.join(plural)))
+                            else:
+                                out.write(' ngettext(%r, %r, count) ' % (''.join(singular), ''.join(plural)))
                         for part in singular:
                             out.write(blankout(part, 'S'))
                         for part in plural:
@@ -541,7 +558,11 @@ def templatize(src, origin=None):
                         if message_context:
                             out.write(' pgettext(%r, %r) ' % (message_context, ''.join(singular)))
                         else:
-                            out.write(' gettext(%r) ' % ''.join(singular))
+                            # AUTO 123 PATCH
+                            if context:
+                                out.write(' pgettext(%r, %r) ' % (context, ''.join(singular)))
+                            else:
+                                out.write(' gettext(%r) ' % ''.join(singular))
                         for part in singular:
                             out.write(blankout(part, 'S'))
                     message_context = None
@@ -610,7 +631,11 @@ def templatize(src, origin=None):
                         out.write(' pgettext(%r, %r) ' % (message_context, g))
                         message_context = None
                     else:
-                        out.write(' gettext(%r) ' % g)
+                        # AUTO 123 PATCH
+                        if context:
+                            out.write(' pgettext(%r, %r) ' % (context, g))
+                        else:
+                            out.write(' gettext(%r) ' % g)
                 elif bmatch:
                     for fmatch in constant_re.findall(t.contents):
                         out.write(' _(%s) ' % fmatch)

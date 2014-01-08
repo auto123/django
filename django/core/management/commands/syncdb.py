@@ -12,6 +12,9 @@ from django.utils.datastructures import SortedDict
 from django.utils.importlib import import_module
 
 
+### Modification by auto123.com to support schema in postgresql.
+
+
 class Command(NoArgsCommand):
     option_list = NoArgsCommand.option_list + (
         make_option('--noinput', action='store_false', dest='interactive', default=True,
@@ -89,6 +92,9 @@ class Command(NoArgsCommand):
             self.stdout.write("Creating tables ...\n")
         with transaction.commit_on_success_unless_managed(using=db):
             for app_name, model_list in manifest.items():
+                ### AUTO 123 PATCH
+                self._create_schemas(connection, cursor, model_list, verbosity)
+
                 for model in model_list:
                     # Create the model's database table, if it doesn't already exist.
                     if verbosity >= 3:
@@ -160,3 +166,22 @@ class Command(NoArgsCommand):
         if load_initial_data:
             call_command('loaddata', 'initial_data', verbosity=verbosity,
                          database=db, skip_validation=True)
+
+    def _create_schemas(self, connection, cursor, model_list, verbosity):
+        ### AUTO 123 PATCH
+        seen_schemas = set()
+        for model in model_list:
+            sql = connection.creation.sql_create_schema(model, self.style,
+                    seen_schemas)
+            if not sql:
+                continue
+            (schema, sql_select, sql_create) = sql
+            cursor.execute(sql_select)
+            row = cursor.fetchone()
+            if not row:
+                if verbosity >= 1:
+                    print("Creating schema %s" % schema)
+                cursor.execute(sql_create)
+            else:
+                if verbosity >= 1:
+                    print("Skipped creation of schema %s" % schema)

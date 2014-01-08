@@ -66,6 +66,8 @@ class Command(BaseCommand):
 
         # Keep a count of the installed objects and fixtures
         self.fixture_count = 0
+        # AUTO 123 PATCH
+        self.fixture_paths = ''
         self.loaded_object_count = 0
         self.fixture_object_count = 0
         self.models = set()
@@ -105,12 +107,14 @@ class Command(BaseCommand):
                 cursor.close()
 
         if self.verbosity >= 1:
+            if self.fixture_paths:
+                self.fixture_paths = self.fixture_paths[:-1]
             if self.fixture_object_count == self.loaded_object_count:
-                self.stdout.write("Installed %d object(s) from %d fixture(s)" %
-                    (self.loaded_object_count, self.fixture_count))
+                self.stdout.write("Installed %d object(s) from %d fixture(s)\n%s\n" %
+                    (self.loaded_object_count, self.fixture_count, self.fixture_paths))
             else:
-                self.stdout.write("Installed %d object(s) (of %d) from %d fixture(s)" %
-                    (self.loaded_object_count, self.fixture_object_count, self.fixture_count))
+                self.stdout.write("Installed %d object(s) (of %d) from %d fixture(s)\n%s\n" %
+                    (self.loaded_object_count, self.fixture_object_count, self.fixture_count, self.fixture_paths))
 
     def load_label(self, fixture_label):
         """
@@ -122,6 +126,7 @@ class Command(BaseCommand):
             fixture = open_method(fixture_file, 'r')
             try:
                 self.fixture_count += 1
+                self.fixture_paths += ' ' + fixture_file + '\n'
                 objects_in_fixture = 0
                 loaded_objects_in_fixture = 0
                 if self.verbosity >= 2:

@@ -14,6 +14,11 @@ from .util import truncate_name
 # the test database.
 TEST_DATABASE_PREFIX = 'test_'
 
+### AUTO 123 PATCH
+SELECT_SCHEMA = "SELECT nspname FROM pg_namespace where nspname='%s';"
+
+CREATE_SCHEMA = "CREATE SCHEMA %s;"
+
 
 class BaseDatabaseCreation(object):
     """
@@ -36,6 +41,22 @@ class BaseDatabaseCreation(object):
         for arg in args:
             h.update(force_bytes(arg))
         return h.hexdigest()[:8]
+
+    def sql_create_schema(self, model, style, known_schemas=set()):
+        """
+        Creates the SQL required to create a schema, as a tuple of
+        (schema_name, select schema sql, create schema sql).
+        """
+        ### AUTO 123 PATCH
+        db_table = model._meta.db_table
+        index = db_table.find('\".\"')
+        sql = None
+        if index > -1:
+            schema = db_table[:index]
+            if schema not in known_schemas:
+                sql = (schema, SELECT_SCHEMA % (schema,), CREATE_SCHEMA % (schema,))
+                known_schemas.add(schema)
+        return sql
 
     def sql_create_model(self, model, style, known_models=set()):
         """
@@ -182,7 +203,25 @@ class BaseDatabaseCreation(object):
         for fs in model._meta.index_together:
             fields = [model._meta.get_field_by_name(f)[0] for f in fs]
             output.extend(self.sql_indexes_for_fields(model, fields, style))
+
+        ### AUTO 123 PATCH
+        output = self._sql_indexes_for_model_with_schema(output)
+
         return output
+
+    def _sql_indexes_for_model_with_schema(self, index_sql):
+        ### AUTO 123 PATCH
+        new_index_sql = []
+        for sql in index_sql:
+            index2 = sql.find('"."')
+            if index2 > -1:
+                index1 = sql[:index2].rfind(" ")
+                # CONCAT 'CREATE INDEX ' + "index_name" ON ..."
+                new_sql = (sql[:index1 + 1] + '"' + sql[index2 + 3:])
+                new_index_sql.append(new_sql)
+            else:
+                new_index_sql.append(sql)
+        return new_index_sql
 
     def sql_indexes_for_field(self, model, f, style):
         """

@@ -3,6 +3,7 @@ import glob
 import io
 import os
 import re
+import shutil
 import sys
 from itertools import dropwhile
 from optparse import make_option
@@ -18,6 +19,13 @@ from django.utils.jslex import prepare_js_for_gettext
 
 plural_forms_re = re.compile(r'^(?P<value>"Plural-Forms.+?\\n")\s*$', re.MULTILINE | re.DOTALL)
 STATUS_OK = 0
+
+# AUTO 123 PATCH
+CONTEXT_DECLARATION = re.compile(r'''_c = partial\(pgettext_lazy, (["'])([^"']+)\1\)''')
+
+REPLACE_SEARCH = re.compile(r'''_c\((["'])''')
+
+REPLACE_REPLACE = r'_c("{0}", \1'
 
 
 def check_programs(*programs):
@@ -96,6 +104,21 @@ class TranslatableFile(object):
                 content = templatize(src_data, orig_file[2:])
                 with open(os.path.join(self.dirpath, thefile), "w") as fp:
                     fp.write(content)
+            else:
+                # AUTO 123 PATCH
+                src_lines = open(orig_file, "rU").readlines()
+                (content, context) = create_context(src_lines)
+                if context:
+                    is_context_generated = True
+                    src_file = orig_file
+                    dest_file = src_file + '.msgbak'
+                    shutil.copy(src_file, dest_file)
+                    f = open(src_file, "w")
+                    try:
+                        f.write(content)
+                    finally:
+                        f.close()
+                    print('Detected context in: {0}'.format(src_file))
             work_file = os.path.join(self.dirpath, thefile)
             args = [
                 'xgettext',
@@ -105,6 +128,7 @@ class TranslatableFile(object):
                 '--keyword=gettext_lazy',
                 '--keyword=ngettext_lazy:1,2',
                 '--keyword=ugettext_noop',
+                '--keyword=_c:1c,2 ' # AUTO 123 PATCH
                 '--keyword=ugettext_lazy',
                 '--keyword=ungettext_lazy:1,2',
                 '--keyword=pgettext:1c,2',
@@ -123,6 +147,10 @@ class TranslatableFile(object):
         else:
             return
         msgs, errors, status = popen_wrapper(args)
+
+        if is_context_generated:
+            shutil.move(dest_file, src_file)
+
         if errors:
             if status != STATUS_OK:
                 if is_templatized:
@@ -248,6 +276,15 @@ class Command(NoArgsCommand):
             self.ignore_patterns += ['contrib/*']
         elif os.path.isdir('locale'):
             localedir = os.path.abspath('locale')
+        # AUTO 123 PATCH
+        # look for the project's locale dir, based on LOCALE_PATH setting
+        elif os.environ.get('DJANGO_SETTINGS_MODULE'):
+            project_locale_dirs = filter(lambda path: os.path.abspath('.') in path, settings.LOCALE_PATHS)
+            if len(project_locale_dirs) == 1:
+                localedir = project_locale_dirs[0]
+            else:
+                raise CommandError("Auto123 patch works only with one LOCALE_PATH (found %n)" %
+                                project_locale_dirs)
         else:
             raise CommandError("This script should be run from the Django Git "
                     "tree or your project or app tree. If you did indeed run it "
@@ -420,3 +457,25 @@ class Command(NoArgsCommand):
                     msgs = '\n'.join(lines)
                     break
         return msgs
+
+
+def create_context(lines):
+    """
+    Replace usage of _("") by _c("")
+    """
+    # AUTO 123 PATCH
+    content = ""
+    found = False
+    context = ""
+    for line in lines:
+        if not found:
+            match = CONTEXT_DECLARATION.match(line)
+            if match:
+                found = True
+                context = match.group(2)
+                to_replace = REPLACE_REPLACE.format(context)
+        else:
+            line = REPLACE_SEARCH.sub(to_replace, line)
+
+        content += line
+    return (content, context)
