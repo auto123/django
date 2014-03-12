@@ -101,8 +101,14 @@ def set_clean(using=None):
     get_connection(using).set_clean()
 
 def is_managed(using=None):
-    warnings.warn("'is_managed' is deprecated.",
-        PendingDeprecationWarning, stacklevel=2)
+    # AUTO 123 PATCH
+    #warnings.warn("'is_managed' is deprecated.",
+        #PendingDeprecationWarning, stacklevel=2)
+    states = get_connection(using).transaction_state
+    if states:
+        return states[-1]
+    else:
+        return False
 
 def managed(flag=True, using=None):
     warnings.warn("'managed' no longer serves a purpose.",
